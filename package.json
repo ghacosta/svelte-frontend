@@ -28,7 +28,8 @@
       "^.+\\.svelte$": "svelte-jester",
       "^.+\\.js$": "babel-jest"
     },
-    "testEnvironment": "jsdom"
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["./setupTest.js"]
   },
   "dependencies": {
     "axios": "0.21.1"
