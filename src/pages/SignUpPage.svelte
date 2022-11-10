@@ -1,6 +1,7 @@
 <script>
-  import axios from "axios";
+  import { _ } from "svelte-i18n";
   import Input from "../components/Input.svelte";
+  import { signup } from "../api/apiCalls";
 
   let disabled = true;
   let form = {
@@ -18,20 +19,18 @@
   let apiProgress,
     signUpSuccess = false;
 
-  const submit = () => {
+  const submit = async () => {
     apiProgress = true;
     const { username, email, password } = form;
-    axios
-      .post("/api/1.0/users", { username, email, password })
-      .then(() => {
-        signUpSuccess = true;
-      })
-      .catch((error) => {
-        if (error.response.status === 400) {
+    try {
+      await signup({ username, email, password });
+      signUpSuccess = true;
+    } catch (error) {
+      if (error.response.status === 400) {
           errors = error.response.data.validationErrors;
         }
         apiProgress = false;
-      });
+    }
   };
 
   const onChange = (event) => {
@@ -39,38 +38,42 @@
     form[id] = value;
     errors[id] = "";
   };
+
+  const changeLanguage = (language) => {
+    
+  }
 </script>
 
 <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
   {#if !signUpSuccess}
     <form class="card mt-5" data-testid="form-sign-up">
       <div class="card-header">
-        <h1 class="text-center">Sign Up</h1>
+        <h1 class="text-center">{$_("signUp")}</h1>
       </div>
       <div class="card-body">
         <Input
           id="username"
-          label="Username"
+          label={$_("username")}
           help={errors?.username}
           on:input={onChange}
         />
         <Input
           id="email"
-          label="E-mail"
+          label={$_("email")}
           help={errors?.email}
           on:input={onChange}
         />
         <Input
           id="password"
-          label="Password"
+          label={$_("password")}
           help={errors?.password}
           on:input={onChange}
           type="password"
         />
         <Input
           id="passwordRepeat"
-          label="Password Repeat"
-          help={passwordMismatch ? "Password mismatch" : ""}
+          label={$_("passwordRepeat")}
+          help={passwordMismatch ? $_("passwordMismatchValidation") : ""}
           on:input={onChange}
           type="password"
         />
@@ -84,7 +87,7 @@
               <span class="spinner-border spinner-border-sm" role="status" />
             {/if}
 
-            Sign Up</button
+            {$_("signUp")}</button
           >
         </div>
       </div>

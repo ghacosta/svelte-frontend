@@ -1,9 +1,20 @@
+// @ts-nocheck
 import SignUpPage from "./SignUpPage.svelte";
+import LanguageSelector from "../components/LanguageSelector.svelte";
 import { render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
-import { not_equal } from "svelte/internal";
+import en from "../locale/en.json"
+import es from "../locale/es.json"
+
+const server = setupServer();
+
+beforeAll(() => server.listen());
+
+beforeEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
 
 describe("Sign Up Page", () => {
   describe("Layout", () => {
@@ -56,22 +67,16 @@ describe("Sign Up Page", () => {
   describe("Interactions", () => {
     let requestBody;
     let counter = 0;
-    const server = setupServer(
-      rest.post("/api/1.0/users", async (req, res, ctx) => {
-        requestBody = await req.json();
-        counter += 1;
-        return res(ctx.status(200));
-      })
-    );
-
-    beforeAll(() => server.listen());
-
     beforeEach(() => {
       counter = 0;
-      server.resetHandlers();
+      server.use(
+        rest.post("/api/1.0/users", (req, res, ctx) => {
+          requestBody = req.body;
+          counter += 1;
+          return res(ctx.status(200));
+        })
+      );
     });
-
-    afterAll(() => server.close());
 
     let button, usernameInput, passwordInput, passwordRepeatInput;
     const setup = async () => {
@@ -232,7 +237,7 @@ describe("Sign Up Page", () => {
     ${"username"} | ${"Username cannot be null"} | ${"Username"}
     ${"email"}    | ${"E-mail cannot be null"}   | ${"E-mail"}
     ${"password"} | ${"Password cannot be null"} | ${"Password"}
-    `("clears validation error after $field field is updated", async ({ field, message, label}) => {
+    `("clears validation error after $field field is updated", async ({ field, message, label }) => {
       server.use(generateValidationError(field, message));
       await setup();
 
@@ -242,6 +247,110 @@ describe("Sign Up Page", () => {
       const input = screen.getByLabelText(label);
       await userEvent.type(input, "updated");
       expect(validationError).not.toBeInTheDocument();
+    });
+  });
+  describe("Internationalization", () => {
+    beforeEach(() => {
+      server.use(
+        rest.post("/api/1.0/users", (req, res, ctx) => {
+          const language = req.headers.get("Accept-Language") || "en";
+          return res(
+            ctx.status(400),
+            ctx.json({
+              validationErrors: {
+                username:
+                  language === "en"
+                    ? "Username cannot be null"
+                    : "Usuario no puede ser nulo",
+              },
+            })
+          );
+        })
+      );
+    });
+
+    let spanishToggle, englishToggle, password, passwordRepeat, button;
+    const setup = () => {
+      render(SignUpPage);
+      render(LanguageSelector);
+      spanishToggle = screen.getByTitle("Español");
+      englishToggle = screen.getByTitle("English");
+      password = screen.queryByLabelText(en.password);
+      passwordRepeat = screen.queryByLabelText(en.passwordRepeat);
+      button = screen.getByRole("button", { name: en.signUp });
+    };
+
+    afterEach(() => {
+      document.body.innerHTML = "";
+    });
+
+    it("initially displays all texts in English", () => {
+      render(SignUpPage);
+
+      expect(screen.queryByRole("heading", { name: en.signUp })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: en.signUp })).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.username)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.email)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.password)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.passwordRepeat)).toBeInTheDocument();
+    });
+    it("displays all text in Spanish after toggling the language", async () => {
+      setup();
+      await userEvent.click(spanishToggle);
+
+      expect(screen.queryByRole("heading", { name: es.signUp })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: es.signUp })).toBeInTheDocument();
+      expect(screen.queryByLabelText(es.username)).toBeInTheDocument();
+      expect(screen.queryByLabelText(es.email)).toBeInTheDocument();
+      expect(screen.queryByLabelText(es.password)).toBeInTheDocument();
+      expect(screen.queryByLabelText(es.passwordRepeat)).toBeInTheDocument();
+
+    });
+    it("displays all texts in English after toggling back from Spanish", async () => {
+      setup();
+      await userEvent.click(spanishToggle);
+      await userEvent.click(englishToggle);
+
+      expect(screen.queryByRole("heading", { name: en.signUp })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: en.signUp })).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.username)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.email)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.password)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.passwordRepeat)).toBeInTheDocument();
+    });
+    it("displays password mismatch validation in Spanish", async () => {
+      setup();
+      await userEvent.click(spanishToggle);
+      await userEvent.type(password, "new-pass");
+      const validationMessageInSpanish = screen.queryByText(es.passwordMismatchValidation);
+      expect(validationMessageInSpanish).toBeInTheDocument();
+    });
+    it("returns validation messages in english initially", async () => {
+      setup();
+      await userEvent.type(password, "Pass");
+      await userEvent.type(passwordRepeat, "Pass");
+      await userEvent.click(button);
+      const validationError = await screen.findByText("Username cannot be null");
+      expect(validationError).toBeInTheDocument();
+    });
+    it("returns validation messages in spanish after that language is selected", async () => {
+      setup();
+      await userEvent.click(spanishToggle);
+      await userEvent.type(password, "Pass");
+      await userEvent.type(passwordRepeat, "Pass");
+      await userEvent.click(button);
+      const validationError = await screen.findByText("Usuario no puede ser nulo");
+      expect(validationError).toBeInTheDocument();
+    });
+    it("returns validation messages in english after toggling back from spanish", async () => {
+      setup();
+      await userEvent.click(spanishToggle);
+      await userEvent.click(englishToggle);
+      await userEvent.type(password, "Pass");
+      await userEvent.type(passwordRepeat, "Pass");
+      await userEvent.click(button);
+      const validationError = await screen.findByText("Username cannot be null");
+      expect(validationError).toBeInTheDocument();
     });
   });
 });

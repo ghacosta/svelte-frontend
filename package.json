@@ -29,9 +29,12 @@
       "^.+\\.js$": "babel-jest"
     },
     "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["./setupTest.js"]
+    "setupFilesAfterEnv": [
+      "./setupTest.js"
+    ]
   },
   "dependencies": {
-    "axios": "0.21.1"
+    "axios": "0.21.1",
+    "svelte-i18n": "^3.4.0"
   }
 }
