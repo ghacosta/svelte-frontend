@@ -1,6 +1,7 @@
 <script>
   import { _ } from "svelte-i18n";
   import Input from "../components/Input.svelte";
+  import Spinner from "../components/Spinner.svelte";
   import { signup } from "../api/apiCalls";
 
   let disabled = true;
@@ -44,7 +45,7 @@
   }
 </script>
 
-<div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
+<div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2" data-testid="signup-page">
   {#if !signUpSuccess}
     <form class="card mt-5" data-testid="form-sign-up">
       <div class="card-header">
@@ -84,7 +85,7 @@
             on:click|preventDefault={submit}
           >
             {#if apiProgress}
-              <span class="spinner-border spinner-border-sm" role="status" />
+              <Spinner />
             {/if}
 
             {$_("signUp")}</button

@@ -18,6 +18,7 @@
     "babel-jest": "^29.2.2",
     "jest": "^29.2.2",
     "jest-environment-jsdom": "^29.2.2",
+    "jest-transform-stub": "^2.0.0",
     "msw": "^0.48.0",
     "svelte": "^3.52.0",
     "svelte-jester": "^2.3.2",
@@ -26,15 +27,20 @@
   "jest": {
     "transform": {
       "^.+\\.svelte$": "svelte-jester",
-      "^.+\\.js$": "babel-jest"
+      "^.+\\.js$": "babel-jest",
+      ".+\\.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2)$": "jest-transform-stub"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(svelte-routing)/)"
+    ],
     "testEnvironment": "jsdom",
     "setupFilesAfterEnv": [
       "./setupTest.js"
     ]
   },
   "dependencies": {
-    "axios": "0.21.1",
-    "svelte-i18n": "^3.4.0"
+    "axios": "0.21.4",
+    "svelte-i18n": "^3.4.0",
+    "svelte-routing": "^1.6.0"
   }
 }
